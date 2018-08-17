@@ -57,11 +57,27 @@ static void test_parse_root_not_singular() {
     EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
 }
 
+static void test_parse_true() {
+    json_value v;
+    v.type = JSON_NULL;
+    EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "true"));
+    EXPECT_EQ_INT(JSON_TRUE, json_get_type(&v));
+}
+
+static void test_parse_false() {
+    json_value v;
+    v.type = JSON_NULL;
+    EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "false"));
+    EXPECT_EQ_INT(JSON_TRUE, json_get_type(&v));
+}
+
 static void test_parse() {
     test_parse_null();
     test_parse_expect_value();
     test_parse_invalid_value();
     test_parse_root_not_singular();
+    test_parse_true();
+    test_parse_false();
 }
 
 int main() {
