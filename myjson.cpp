@@ -1,8 +1,8 @@
 #include "myjson.h"
-#include <assert.h>  /* assert() */
-#include <stdlib.h>  /* NULL */
+#include <cassert>  /* assert() */
+#include <cstdlib>  /* NULL */
 
-#define EXPECT(c, ch)       do { assert(*c->json == (ch)); c->json++; } while(0)
+#define EXPECT(c, ch)       do { assert(*(c)->json == (ch)); (c)->json++; } while(0)
 
 typedef struct {
     const char* json;
@@ -38,7 +38,7 @@ static int json_parse_false(json_context *c, json_value *v) {
     if (c->json[0] != 'a' || c->json[1] != 'l' || c->json[2] != 's' || c->json[3] != 'e')
         return JSON_PARSE_INVALID_VALUE;
     c->json += 4;
-    v->type = JSON_TRUE;
+    v->type = JSON_FALSE;
     return JSON_PARSE_OK;
 }
 
