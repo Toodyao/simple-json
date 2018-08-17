@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "myjson.h"
 
 static int main_ret = 0;
@@ -20,6 +20,14 @@ static int test_pass = 0;
 
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
 
+#define TEST_ERROR(error, json)\
+    do {\
+        json_value v;\
+        v.type = JSON_FALSE;\
+        EXPECT_EQ_INT(error, json_parse(&v, json));\
+        EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));\
+    } while(0)
+
 static void test_parse_null() {
     json_value v;
     v.type = JSON_FALSE;
@@ -28,33 +36,17 @@ static void test_parse_null() {
 }
 
 static void test_parse_expect_value() {
-    json_value v;
-
-    v.type = JSON_FALSE;
-    EXPECT_EQ_INT(JSON_PARSE_EXPECT_VALUE, json_parse(&v, ""));
-    EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
-
-    v.type = JSON_FALSE;
-    EXPECT_EQ_INT(JSON_PARSE_EXPECT_VALUE, json_parse(&v, " "));
-    EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
+    TEST_ERROR(JSON_PARSE_EXPECT_VALUE, "");
+    TEST_ERROR(JSON_PARSE_EXPECT_VALUE, " ");
 }
 
 static void test_parse_invalid_value() {
-    json_value v;
-    v.type = JSON_FALSE;
-    EXPECT_EQ_INT(JSON_PARSE_INVALID_VALUE, json_parse(&v, "nul"));
-    EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
-
-    v.type = JSON_FALSE;
-    EXPECT_EQ_INT(JSON_PARSE_INVALID_VALUE, json_parse(&v, "?"));
-    EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
+    TEST_ERROR(JSON_PARSE_INVALID_VALUE, "nul");
+    TEST_ERROR(JSON_PARSE_INVALID_VALUE, "?");
 }
 
 static void test_parse_root_not_singular() {
-    json_value v;
-    v.type = JSON_FALSE;
-    EXPECT_EQ_INT(JSON_PARSE_ROOT_NOT_SINGULAR, json_parse(&v, "null  x"));
-    EXPECT_EQ_INT(JSON_NULL, json_get_type(&v));
+    TEST_ERROR(JSON_PARSE_ROOT_NOT_SINGULAR, "null x");
 }
 
 static void test_parse_true() {
@@ -68,7 +60,7 @@ static void test_parse_false() {
     json_value v;
     v.type = JSON_NULL;
     EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "false"));
-    EXPECT_EQ_INT(JSON_TRUE, json_get_type(&v));
+    EXPECT_EQ_INT(JSON_FALSE, json_get_type(&v));
 }
 
 static void test_parse() {
