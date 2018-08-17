@@ -4,8 +4,9 @@
 typedef enum { JSON_NULL, JSON_FALSE, JSON_TRUE, JSON_NUMBER, JSON_STRING, JSON_ARRAY, JSON_OBJECT } json_type;
 
 typedef struct {
-	json_type type;
-}json_value;
+    double n;
+    json_type type;
+} json_value;
 
 enum {
     JSON_PARSE_OK = 0,
@@ -14,8 +15,10 @@ enum {
     JSON_PARSE_ROOT_NOT_SINGULAR
 };
 
-int json_parse(json_value *v, const char *json);
+int json_parse(json_value* v, const char* json);
 
-json_type json_get_type(const json_value *v);
+json_type json_get_type(const json_value* v);
+
+double json_get_number(const json_value* v);
 
 #endif /* MY_JSON_H__ */
