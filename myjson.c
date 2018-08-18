@@ -1,7 +1,7 @@
 #include "myjson.h"
-#include <cassert>  /* assert() */
-#include <cstdlib>  /* NULL, strtod()*/
-#include <cstring>
+#include <assert.h>  /* assert() */
+#include <stdlib.h>  /* NULL, strtod()*/
+#include <string.h>
 
 #ifndef JSON_PARSE_STACK_INIT_SIZE
 #define JSON_PARSE_STACK_INIT_SIZE 256
