@@ -22,6 +22,9 @@ static int test_pass = 0;
 #define EXPECT_EQ_DOUBLE(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%.17g")
 #define EXPECT_EQ_STRING(expect, actual, alength) \
     EXPECT_EQ_BASE(sizeof(expect) - 1 == (alength) && memcmp(expect, actual, alength) == 0, expect, actual, "%s")
+#define EXPECT_TRUE(actual) EXPECT_EQ_BASE((actual) != 0, "true", "false", "%s")
+#define EXPECT_FALSE(actual) EXPECT_EQ_BASE((actual) == 0, "false", "true", "%s")
+
 
 #define TEST_ERROR(error, json)\
     do {\
@@ -136,6 +139,26 @@ static void test_access_string() {
     json_free(&v);
 }
 
+static void test_access_boolean() {
+    json_value v;
+    json_init(&v);
+    json_set_string(&v, "a", 1);
+    json_set_boolean(&v, 1);
+    EXPECT_TRUE(json_get_boolean(&v));
+    json_set_boolean(&v, 0);
+    EXPECT_FALSE(json_get_boolean(&v));
+    json_free(&v);
+}
+
+static void test_access_number() {
+    json_value v;
+    json_init(&v);
+    json_set_string(&v, "a", 1);
+    json_set_number(&v, 1234.5);
+    EXPECT_EQ_DOUBLE(1234.5, json_get_number(&v));
+    json_free(&v);
+}
+
 static void test_parse() {
     test_parse_null();
     test_parse_expect_value();
@@ -149,6 +172,9 @@ static void test_parse() {
 
     test_access_string();
     test_parse_string();
+
+    test_access_boolean();
+    test_access_number();
 }
 
 int main() {

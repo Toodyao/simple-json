@@ -161,6 +161,7 @@ void json_free(json_value* v) {
     v->type = JSON_NULL;
 }
 
+// Getter Begin
 json_type json_get_type(const json_value* v) {
     assert(v != NULL);
     return v->type;
@@ -170,12 +171,11 @@ double json_get_number(const json_value* v) {
     assert(v != NULL && v->type == JSON_NUMBER);
     return v->u.n;
 }
-//
-//void json_set_number(json_value* v, double n) {
-//    json_free(v);
-//    v->u.n = n;
-//    v->type = JSON_NUMBER;
-//}
+
+int json_get_boolean(const json_value* v) {
+    assert(v != NULL && (v->type == JSON_TRUE || v->type == JSON_FALSE));
+    return v->type == JSON_TRUE;
+}
 
 size_t json_get_string_length(const json_value* v) {
     assert(v != NULL && v->type == JSON_STRING);
@@ -185,6 +185,22 @@ size_t json_get_string_length(const json_value* v) {
 const char* json_get_string(const json_value* v) {
     assert(v != NULL && v->type == JSON_STRING);
     return v->u.s.s;
+}
+// Getter End
+
+// Setter Begin
+// Every setter begin with json_free()
+// to make sure the context is clean
+// json_free() has assert()
+void json_set_boolean(json_value* v, int b) {
+    json_free(v);
+    v->type = b ? JSON_TRUE : JSON_FALSE;
+}
+
+void json_set_number(json_value* v, double n) {
+    json_free(v);
+    v->u.n = n;
+    v->type = JSON_NUMBER;
 }
 
 void json_set_string(json_value* v, const char* s, size_t len) {
@@ -196,3 +212,4 @@ void json_set_string(json_value* v, const char* s, size_t len) {
     v->u.s.len = len;
     v->type = JSON_STRING;
 }
+// Setter End
