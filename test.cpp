@@ -20,6 +20,8 @@ static int test_pass = 0;
 
 #define EXPECT_EQ_INT(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%d")
 #define EXPECT_EQ_DOUBLE(expect, actual) EXPECT_EQ_BASE((expect) == (actual), expect, actual, "%.17g")
+#define EXPECT_EQ_STRING(expect, actual, alength) \
+    EXPECT_EQ_BASE(sizeof(expect) - 1 == (alength) && memcmp(expect, actual, alength) == 0, expect, actual, "%s")
 
 #define TEST_ERROR(error, json)\
     do {\
@@ -35,6 +37,16 @@ static int test_pass = 0;
         EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, json));\
         EXPECT_EQ_INT(JSON_NUMBER, json_get_type(&v));\
         EXPECT_EQ_DOUBLE(expect, json_get_number(&v));\
+    } while(0)
+
+#define TEST_STRING(expect, json)\
+    do {\
+        json_value v;\
+        json_init(&v);\
+        EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, json));\
+        EXPECT_EQ_INT(JSON_STRING, json_get_type(&v));\
+        EXPECT_EQ_STRING(expect, json_get_string(&v), json_get_string_length(&v));\
+        json_free(&v);\
     } while(0)
 
 static void test_parse_null() {
@@ -105,6 +117,25 @@ static void test_parse_false() {
     EXPECT_EQ_INT(JSON_FALSE, json_get_type(&v));
 }
 
+static void test_parse_string() {
+    TEST_STRING("", "\"\"");
+    TEST_STRING("Hello", "\"Hello\"");
+    // TODO: add escape characters
+    // json_parse_string()
+//    TEST_STRING("Hello\nWorld", "\"Hello\\nWorld\"");
+//    TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
+}
+
+static void test_access_string() {
+    json_value v;
+    json_init(&v);
+    json_set_string(&v, "", 0);
+    EXPECT_EQ_STRING("", json_get_string(&v), json_get_string_length(&v));
+    json_set_string(&v, "Hello", 5);
+    EXPECT_EQ_STRING("Hello", json_get_string(&v), json_get_string_length(&v));
+    json_free(&v);
+}
+
 static void test_parse() {
     test_parse_null();
     test_parse_expect_value();
@@ -115,6 +146,9 @@ static void test_parse() {
     test_parse_false();
 
     test_parse_number();
+
+    test_access_string();
+    test_parse_string();
 }
 
 int main() {

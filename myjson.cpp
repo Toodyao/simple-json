@@ -1,14 +1,64 @@
 #include "myjson.h"
 #include <cassert>  /* assert() */
 #include <cstdlib>  /* NULL, strtod()*/
+#include <cstring>
+
+#ifndef JSON_PARSE_STACK_INIT_SIZE
+#define JSON_PARSE_STACK_INIT_SIZE 256
+#endif
 
 // Check if the first character of c->json equals to ch
 // and move the pointer to the next position.
 #define EXPECT(c, ch)       do { assert((c)->json[0] == (ch)); (c)->json++; } while(0)
+#define PUTC(c, ch)         do { *(char*)json_context_push(c, sizeof(char)) = (ch); } while(0)
 
 typedef struct {
     const char* json;
+    char* stack;
+    size_t size, top;
 } json_context;
+
+static void* json_context_push(json_context* c, size_t size) {
+    void* ret;
+    assert(size > 0);
+    if (c->top + size >= c->size) {
+        if (c->size == 0)
+            c->size = JSON_PARSE_STACK_INIT_SIZE;
+        while (c->top + size >= c->size)
+            c->size += c->size >> 1;  /* c->size * 1.5 */
+        c->stack = (char*)realloc(c->stack, c->size);
+    }
+    ret = c->stack + c->top;
+    c->top += size;
+    return ret;
+}
+
+static void* json_context_pop(json_context* c, size_t size) {
+    assert(c->top >= size);
+    return c->stack + (c->top -= size);
+}
+
+static int json_parse_string(json_context* c, json_value* v) {
+    size_t head = c->top, len = 0;
+    const char* p;
+    EXPECT(c, '\"');
+    p = c->json;
+    while (1) {
+        char ch = *p++;
+        switch (ch) {
+            case '\"':
+                len = c->top - head;
+                json_set_string(v, (const char*)json_context_pop(c, len), len);
+                c->json = p;
+                return JSON_PARSE_OK;
+            case '\0':
+                c->top = head;
+                return JSON_PARSE_MISS_QUOTATION_MARK;
+            default:
+                PUTC(c, ch);
+        }
+    }
+}
 
 static void json_parse_whitespace(json_context* c) {
     const char* p = c->json;
@@ -60,7 +110,7 @@ static int json_parse_literal(json_context* c, json_value* v, const char* litera
 static int json_parse_number(json_context* c, json_value* v) {
     char* end;
     // TODO: add number validation
-    v->n = strtod(c->json, &end); // Convert string to double
+    v->u.n = strtod(c->json, &end); // Convert string to double
     if (c->json == end)
         return JSON_PARSE_INVALID_VALUE;
     c->json = end;
@@ -73,26 +123,42 @@ static int json_parse_value(json_context* c, json_value* v) {
         case 'n':  return json_parse_literal(c, v, "null", JSON_NULL);
         case 't':  return json_parse_literal(c, v, "true", JSON_TRUE);
         case 'f':  return json_parse_literal(c, v, "false", JSON_FALSE);
+        case '\"': return json_parse_string(c, v);
         case '\0': return JSON_PARSE_EXPECT_VALUE;
         default:   return json_parse_number(c, v);
     }
 }
 
 int json_parse(json_value* v, const char* json) {
+    assert(v != NULL);
+
     int ret;
     json_context c;
-    assert(v != NULL);
     c.json = json;
-    v->type = JSON_NULL;
+    c.stack = NULL;
+    c.size = c.top = 0;
+    json_init(v);
 
     json_parse_whitespace(&c);
     if ((ret = json_parse_value(&c, v)) == JSON_PARSE_OK) {
         json_parse_whitespace(&c);
-        if (*(c.json) != '\0')
+        // Has extra chars at the end of the value
+        if (*(c.json) != '\0') {
+            v->type = JSON_NULL;
             ret = JSON_PARSE_ROOT_NOT_SINGULAR;
+        }
     }
-
+    assert(c.top == 0);
+    free(c.stack);
     return ret;
+}
+
+void json_free(json_value* v) {
+    assert(v != NULL);
+    // Free only when v is string type
+    if (v->type == JSON_STRING)
+        free(v->u.s.s);
+    v->type = JSON_NULL;
 }
 
 json_type json_get_type(const json_value* v) {
@@ -102,5 +168,31 @@ json_type json_get_type(const json_value* v) {
 
 double json_get_number(const json_value* v) {
     assert(v != NULL && v->type == JSON_NUMBER);
-    return v->n;
+    return v->u.n;
+}
+//
+//void json_set_number(json_value* v, double n) {
+//    json_free(v);
+//    v->u.n = n;
+//    v->type = JSON_NUMBER;
+//}
+
+size_t json_get_string_length(const json_value* v) {
+    assert(v != NULL && v->type == JSON_STRING);
+    return v->u.s.len;
+}
+
+const char* json_get_string(const json_value* v) {
+    assert(v != NULL && v->type == JSON_STRING);
+    return v->u.s.s;
+}
+
+void json_set_string(json_value* v, const char* s, size_t len) {
+    assert(v != NULL && (s != NULL || len == 0));
+    json_free(v);
+    v->u.s.s = (char*)malloc(len + 1);
+    memcpy(v->u.s.s, s, len);
+    v->u.s.s[len] = '\0';
+    v->u.s.len = len;
+    v->type = JSON_STRING;
 }
