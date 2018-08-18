@@ -10,6 +10,8 @@
 // Check if the first character of c->json equals to ch
 // and move the pointer to the next position.
 #define EXPECT(c, ch)       do { assert((c)->json[0] == (ch)); (c)->json++; } while(0)
+
+// Push the value to the stack by using the returned pointer of json_context_push()
 #define PUTC(c, ch)         do { *(char*)json_context_push(c, sizeof(char)) = (ch); } while(0)
 
 typedef struct {
@@ -18,6 +20,8 @@ typedef struct {
     size_t size, top;
 } json_context;
 
+// Push context to dynamic stack, returns a void pointer.
+// Modify the stack data by changing the data void pointer pointed.
 static void* json_context_push(json_context* c, size_t size) {
     void* ret;
     assert(size > 0);
@@ -118,13 +122,55 @@ static int json_parse_number(json_context* c, json_value* v) {
     return JSON_PARSE_OK;
 }
 
+static int json_parse_value(json_context* c, json_value* v); // Forward declare
+static int json_parse_array(json_context* c, json_value* v) {
+    size_t size = 0;
+    int ret;
+    EXPECT(c, '[');
+    json_parse_whitespace(c);
+    if (*c->json == ']') {
+        c->json++;
+        v->type = JSON_ARRAY;
+        v->u.a.size = 0;
+        v->u.a.e = NULL;
+        return JSON_PARSE_OK;
+    }
+    // Process recursively
+    for (;;) {
+        json_value e;
+        json_init(&e);
+        if ((ret = json_parse_value(c, &e)) != JSON_PARSE_OK)
+            return ret;
+        // Push(copy) element e into stack
+        memcpy(json_context_push(c, sizeof(json_value)), &e, sizeof(json_value));
+        size++;
+        json_parse_whitespace(c);
+        if (*c->json == ',') {
+            c->json++;
+            json_parse_whitespace(c);
+        }
+        else if (*c->json == ']') {
+            c->json++;
+            v->type = JSON_ARRAY;
+            v->u.a.size = size;
+            size *= sizeof(json_value);
+            // Copy full buffer into json_value
+            memcpy(v->u.a.e = (json_value*)malloc(size), json_context_pop(c, size), size);
+            return JSON_PARSE_OK;
+        }
+        else
+            return JSON_PARSE_MISS_COMMA_OR_SQUARE_BRACKET;
+    }
+}
+
 static int json_parse_value(json_context* c, json_value* v) {
-    switch (*c->json) {
+    switch (*c->json) { // Equals to c->json[0]
         case 'n':  return json_parse_literal(c, v, "null", JSON_NULL);
         case 't':  return json_parse_literal(c, v, "true", JSON_TRUE);
         case 'f':  return json_parse_literal(c, v, "false", JSON_FALSE);
         case '\"': return json_parse_string(c, v);
         case '\0': return JSON_PARSE_EXPECT_VALUE;
+        case '[':  return json_parse_array(c, v);
         default:   return json_parse_number(c, v);
     }
 }
@@ -142,7 +188,7 @@ int json_parse(json_value* v, const char* json) {
     json_parse_whitespace(&c);
     if ((ret = json_parse_value(&c, v)) == JSON_PARSE_OK) {
         json_parse_whitespace(&c);
-        // Has extra chars at the end of the value
+        // Has extra chars at the end of the value, fail it
         if (*(c.json) != '\0') {
             v->type = JSON_NULL;
             ret = JSON_PARSE_ROOT_NOT_SINGULAR;
@@ -185,6 +231,17 @@ size_t json_get_string_length(const json_value* v) {
 const char* json_get_string(const json_value* v) {
     assert(v != NULL && v->type == JSON_STRING);
     return v->u.s.s;
+}
+
+size_t json_get_array_size(const json_value* v) {
+    assert(v != NULL && v->type == JSON_ARRAY);
+    return v->u.a.size;
+}
+
+json_value* json_get_array_element(const json_value* v, size_t index) {
+    assert(v != NULL && v->type == JSON_ARRAY);
+    assert(index < v->u.a.size);
+    return &v->u.a.e[index];
 }
 // Getter End
 

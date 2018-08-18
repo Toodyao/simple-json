@@ -5,8 +5,16 @@
 
 typedef enum { JSON_NULL, JSON_FALSE, JSON_TRUE, JSON_NUMBER, JSON_STRING, JSON_ARRAY, JSON_OBJECT } json_type;
 
-typedef struct {
+typedef struct json_value json_value;
+
+struct json_value{
+    // Use union to make sure that only one element exists(number, array, number).
     union {
+        // array
+        struct {
+           json_value* e; // Stores array
+           size_t size;   // Indicate size of the array
+        } a;
         // string
         struct {
             char* s;
@@ -16,7 +24,7 @@ typedef struct {
         double n;
     } u;
     json_type type;
-} json_value;
+};
 
 enum {
     JSON_PARSE_OK = 0,
@@ -25,7 +33,8 @@ enum {
     JSON_PARSE_ROOT_NOT_SINGULAR,
     JSON_PARSE_MISS_QUOTATION_MARK,
     JSON_PARSE_INVALID_STRING_ESCAPE,
-    JSON_PARSE_INVALID_STRING_CHAR
+    JSON_PARSE_INVALID_STRING_CHAR,
+    JSON_PARSE_MISS_COMMA_OR_SQUARE_BRACKET
 };
 
 #define json_init(v) do { (v)->type = JSON_NULL; } while(0)
@@ -46,5 +55,8 @@ void json_set_number(json_value* v, double n);
 const char* json_get_string(const json_value* v);
 size_t json_get_string_length(const json_value* v);
 void json_set_string(json_value* v, const char* s, size_t len);
+
+size_t json_get_array_size(const json_value* v);
+json_value* json_get_array_element(const json_value* v, size_t index);
 
 #endif /* MY_JSON_H__ */

@@ -24,6 +24,7 @@ static int test_pass = 0;
     EXPECT_EQ_BASE(sizeof(expect) - 1 == (alength) && memcmp(expect, actual, alength) == 0, expect, actual, "%s")
 #define EXPECT_TRUE(actual) EXPECT_EQ_BASE((actual) != 0, "true", "false", "%s")
 #define EXPECT_FALSE(actual) EXPECT_EQ_BASE((actual) == 0, "false", "true", "%s")
+#define EXPECT_EQ_SIZE_T(expect, actual) EXPECT_EQ_BASE((expect) == (actual), (size_t)(expect), (size_t)(actual), "%zu")
 
 
 #define TEST_ERROR(error, json)\
@@ -129,6 +130,43 @@ static void test_parse_string() {
 //    TEST_STRING("\" \\ / \b \f \n \r \t", "\"\\\" \\\\ \\/ \\b \\f \\n \\r \\t\"");
 }
 
+static void test_parse_array() {
+    json_value v;
+
+    json_init(&v);
+    EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "[ ]"));
+    EXPECT_EQ_INT(JSON_ARRAY, json_get_type(&v));
+    EXPECT_EQ_SIZE_T(0, json_get_array_size(&v));
+    EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "[ null , false , true , 123 , \"abc\" ]"));
+    EXPECT_EQ_INT(JSON_ARRAY, json_get_type(&v));
+    EXPECT_EQ_SIZE_T(5, json_get_array_size(&v));
+    EXPECT_EQ_INT(JSON_NULL,   json_get_type(json_get_array_element(&v, 0)));
+    EXPECT_EQ_INT(JSON_FALSE,  json_get_type(json_get_array_element(&v, 1)));
+    EXPECT_EQ_INT(JSON_TRUE,   json_get_type(json_get_array_element(&v, 2)));
+    EXPECT_EQ_INT(JSON_NUMBER, json_get_type(json_get_array_element(&v, 3)));
+    EXPECT_EQ_INT(JSON_STRING, json_get_type(json_get_array_element(&v, 4)));
+    EXPECT_EQ_DOUBLE(123.0, json_get_number(json_get_array_element(&v, 3)));
+    EXPECT_EQ_STRING("abc", json_get_string(json_get_array_element(&v, 4)), json_get_string_length(json_get_array_element(&v, 4)));
+    json_free(&v);
+
+    json_init(&v);
+    EXPECT_EQ_INT(JSON_PARSE_OK, json_parse(&v, "[ [ ] , [ 0 ] , [ 0 , 1 ] , [ 0 , 1 , 2 ] ]"));
+    EXPECT_EQ_INT(JSON_ARRAY, json_get_type(&v));
+    EXPECT_EQ_SIZE_T(4, json_get_array_size(&v));
+    size_t i, j;
+    for (i = 0; i < 4; i++) {
+        json_value* a = json_get_array_element(&v, i);
+        EXPECT_EQ_INT(JSON_ARRAY, json_get_type(a));
+        EXPECT_EQ_SIZE_T(i, json_get_array_size(a));
+        for (j = 0; j < i; j++) {
+            json_value* e = json_get_array_element(a, j);
+            EXPECT_EQ_INT(JSON_NUMBER, json_get_type(e));
+            EXPECT_EQ_DOUBLE((double)j, json_get_number(e));
+        }
+    }
+    json_free(&v);
+}
+
 static void test_access_string() {
     json_value v;
     json_init(&v);
@@ -175,6 +213,8 @@ static void test_parse() {
 
     test_access_boolean();
     test_access_number();
+
+    test_parse_array();
 }
 
 int main() {
