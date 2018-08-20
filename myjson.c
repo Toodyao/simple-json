@@ -136,12 +136,12 @@ static int json_parse_array(json_context* c, json_value* v) {
         return JSON_PARSE_OK;
     }
     // Process recursively
-    for (;;) {
+    while(1) {
         json_value e;
         json_init(&e);
         if ((ret = json_parse_value(c, &e)) != JSON_PARSE_OK)
-            return ret;
-        // Push(copy) element e into stack
+            break;
+        // Push(or copy) element e into stack
         memcpy(json_context_push(c, sizeof(json_value)), &e, sizeof(json_value));
         size++;
         json_parse_whitespace(c);
@@ -158,9 +158,16 @@ static int json_parse_array(json_context* c, json_value* v) {
             memcpy(v->u.a.e = (json_value*)malloc(size), json_context_pop(c, size), size);
             return JSON_PARSE_OK;
         }
-        else
-            return JSON_PARSE_MISS_COMMA_OR_SQUARE_BRACKET;
+        else {
+            ret = JSON_PARSE_MISS_COMMA_OR_SQUARE_BRACKET;
+            break;
+        }
     }
+    // Free allocated memory when parsing failed
+    for (size_t i = 0; i < size; i++)
+        json_free((json_value*)json_context_pop(c, sizeof(json_value)));
+
+    return ret;
 }
 
 static int json_parse_value(json_context* c, json_value* v) {
