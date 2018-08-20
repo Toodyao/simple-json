@@ -201,9 +201,18 @@ int json_parse(json_value* v, const char* json) {
 
 void json_free(json_value* v) {
     assert(v != NULL);
-    // Free only when v is string type
-    if (v->type == JSON_STRING)
-        free(v->u.s.s);
+    // Free allocated memory only when v is string type
+    switch (v->type) {
+        case JSON_STRING:
+            free(v->u.s.s);
+            break;
+        case JSON_ARRAY:
+            for (size_t i = 0; i < v->u.a.size; i++)
+                json_free(&v->u.a.e[i]);
+            free(v->u.a.e);
+            break;
+        default: break;
+    }
     v->type = JSON_NULL;
 }
 
