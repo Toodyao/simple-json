@@ -1,6 +1,8 @@
 #ifndef SIMPLE_JSON_MYJSON_BASE_H
 #define SIMPLE_JSON_MYJSON_BASE_H
 
+#include <cstddef> // size_t
+
 typedef enum { JSON_NULL, JSON_FALSE, JSON_TRUE, JSON_NUMBER, JSON_STRING, JSON_ARRAY, JSON_OBJECT } json_type;
 
 typedef struct json_value json_value;
