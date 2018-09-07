@@ -5,20 +5,21 @@
 
 typedef enum { JSON_NULL, JSON_FALSE, JSON_TRUE, JSON_NUMBER, JSON_STRING, JSON_ARRAY, JSON_OBJECT } json_type;
 
-typedef struct json_value json_value;
-typedef struct json_member json_member;
+typedef class JsonValue JsonValue;
+typedef class JsonObject JsonObject;
 
-struct json_value {
+class JsonValue {
     // Use union to make sure that only one element exists(object, array, string, number).
+public:
     union {
-        // member
+        // object
         struct {
-            json_member* m; // Stores object
+            JsonObject* obj; // Stores object
             size_t size;    // Indicate size of the object
         } obj;
         // array
         struct {
-            struct json_value* ele; // Stores array
+            JsonValue* ele; // Stores array
             size_t size;   // Indicate size of the array
         } arr;
         // string
@@ -29,13 +30,14 @@ struct json_value {
         // number
         double num;
     };
-    json_type type;
+    json_type _type;
 };
 
-struct json_object {
+class JsonObject {
+public:
     char* key;      // Key string
     size_t k_len;  // Size of key string
-    json_value v; // Value of member
+    JsonValue v; // Value of member
 };
 
 enum { // Json paring state

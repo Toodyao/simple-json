@@ -3,12 +3,19 @@
 
 #include "myjson_base.h"
 #include <cstddef> // size_t
+#include <string>  // string
+using std::string
 
-class MyJson {
+class MyJson : public JsonValue {
 public:
-    json_value j;
+    // Need to be private:
+    string json_string;
 
-public:
+    void parse_whitespace();
+    int parse_value();
+
+
+    // Real public:
     int parse();
     json_type type();
 
@@ -18,13 +25,13 @@ public:
 //    size_t get_string_length();
 //    size_t get_array_size();
 //    json_value* get_array_element();
-//    size_t get_object_soze();
+//    size_t get_object_size();
 //    const char* get_object_key();
 //    size_t get_object_key_length();
 //    json_value* json_get_object_value();
 
     json_type test() {
-        return j.type;
+        return _type;
     }
 
 };
